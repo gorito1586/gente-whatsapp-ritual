@@ -64,7 +64,7 @@ Desde su WhatsApp personal (`LUIS_PHONE`) al número del negocio:
    npx wrangler secret put ANTHROPIC_API_KEY
    npx wrangler secret put LUIS_PHONE                # 5939XXXXXXXX
    ```
-6. **Publicar:** `npm run deploy`. En Meta, configura el webhook con la URL `https://agente-whatsapp-ritual.<tu-subdominio>.workers.dev/webhook`, el mismo `WHATSAPP_VERIFY_TOKEN`, y suscríbete a los campos `messages` y `smb_message_echoes`.
+6. **Publicar:** `npm run deploy`. En Meta, configura el webhook con la URL `https://gente-whatsapp-ritual.slipluis.workers.dev/webhook`, el mismo `WHATSAPP_VERIFY_TOKEN`, y suscríbete a los campos `messages` y `smb_message_echoes`.
 
 ### Avisos a Luis fuera de la ventana de 24 horas
 
@@ -82,7 +82,7 @@ Por defecto usa `claude-opus-5-5` con esfuerzo `low`, que es rápido y suficient
 
 ## Revisar la configuración
 
-Abre `https://agente-whatsapp-ritual.<tu-subdominio>.workers.dev/salud`: muestra qué secretos faltan y si Shopify responde.
+Abre `https://gente-whatsapp-ritual.slipluis.workers.dev/salud`: muestra qué secretos faltan y si Shopify responde.
 
 ## Pruebas
 
