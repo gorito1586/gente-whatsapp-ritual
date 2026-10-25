@@ -58,7 +58,8 @@ export async function health(env: Env) {
   } catch (err) {
     shopify = `error: ${String(err).slice(0, 300)}`;
   }
-  return Response.json({ faltan, shopify });
+  const permisos_shopify = (await env.STATE.get("shopify_scopes")) ?? "(sin token todavía)";
+  return Response.json({ faltan, shopify, permisos_shopify });
 }
 
 export async function handleEvents(env: Env, body: unknown) {

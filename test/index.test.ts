@@ -84,6 +84,6 @@ describe("/salud", () => {
     delete (env as any).ANTHROPIC_API_KEY;
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ data: { products: { nodes: [] } } })));
     const body = await (await health(env)).json();
-    expect(body).toEqual({ faltan: ["ANTHROPIC_API_KEY"], shopify: "ok, 0 productos activos" });
+    expect(body).toEqual({ faltan: ["ANTHROPIC_API_KEY"], shopify: "ok, 0 productos activos", permisos_shopify: "(sin token todavía)" });
   });
 });

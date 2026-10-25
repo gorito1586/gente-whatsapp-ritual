@@ -39,6 +39,7 @@ async function accessToken(env: Env): Promise<string> {
   if (!res.ok || !data.access_token) throw new Error(`Shopify token ${res.status}: ${raw.slice(0, 300)}`);
   const ttl = Math.max(60, (data.expires_in ?? 86399) - 3600);
   await env.STATE.put("shopify_token", data.access_token, { expirationTtl: ttl });
+  await env.STATE.put("shopify_scopes", String(data.scope ?? ""), { expirationTtl: ttl });
   return data.access_token;
 }
 
