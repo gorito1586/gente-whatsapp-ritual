@@ -16,11 +16,33 @@ export interface Product {
   variants: Variant[];
 }
 
+// Las apps del Dev Dashboard obtienen un token que dura 24 h con el client
+// credentials grant; se guarda en KV y se renueva antes de que venza.
+async function accessToken(env: Env): Promise<string> {
+  if (env.SHOPIFY_ADMIN_TOKEN) return env.SHOPIFY_ADMIN_TOKEN;
+  const cached = await env.STATE.get("shopify_token");
+  if (cached) return cached;
+  const res = await fetch(`https://${env.SHOPIFY_STORE_DOMAIN}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: env.SHOPIFY_CLIENT_ID ?? "",
+      client_secret: env.SHOPIFY_CLIENT_SECRET ?? "",
+    }),
+  });
+  const data: any = await res.json().catch(() => ({}));
+  if (!res.ok || !data.access_token) throw new Error(`Shopify token ${res.status}: ${JSON.stringify(data)}`);
+  const ttl = Math.max(60, (data.expires_in ?? 86399) - 3600);
+  await env.STATE.put("shopify_token", data.access_token, { expirationTtl: ttl });
+  return data.access_token;
+}
+
 async function admin(env: Env, query: string, variables: Record<string, unknown> = {}) {
   const version = env.SHOPIFY_API_VERSION ?? "2026-07";
   const res = await fetch(`https://${env.SHOPIFY_STORE_DOMAIN}/admin/api/${version}/graphql.json`, {
     method: "POST",
-    headers: { "X-Shopify-Access-Token": env.SHOPIFY_ADMIN_TOKEN, "Content-Type": "application/json" },
+    headers: { "X-Shopify-Access-Token": await accessToken(env), "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
   });
   const data: any = await res.json().catch(() => ({}));

@@ -21,6 +21,7 @@ SHOPIFY_API_VERSION = "2026-07"
 #   npx wrangler secret put WHATSAPP_APP_SECRET
 #   npx wrangler secret put WHATSAPP_VERIFY_TOKEN
 #   npx wrangler secret put SHOPIFY_STORE_DOMAIN
-#   npx wrangler secret put SHOPIFY_ADMIN_TOKEN
+#   npx wrangler secret put SHOPIFY_CLIENT_ID
+#   npx wrangler secret put SHOPIFY_CLIENT_SECRET
 #   npx wrangler secret put ANTHROPIC_API_KEY
 #   npx wrangler secret put LUIS_PHONE

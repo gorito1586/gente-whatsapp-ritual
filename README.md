@@ -45,7 +45,7 @@ Desde su WhatsApp personal (`LUIS_PHONE`) al número del negocio:
    npx wrangler login
    npx wrangler kv namespace create STATE   # copia el id en wrangler.toml
    ```
-2. **Shopify:** en *Configuración → Apps → Desarrollar apps*, crea una app con los permisos `read_products`, `read_inventory` y `write_orders`. Copia el token de Admin API.
+2. **Shopify:** desde 2026 las apps nuevas se crean en el [Dev Dashboard](https://dev.shopify.com/dashboard) (ya no en *Desarrollar apps* del admin). Crea una app, en su versión marca los permisos `read_products`, `read_inventory` y `write_orders`, publícala e instálala en la tienda. Copia el *Client ID* y el *Client secret*; el agente pide solo el token de 24 h con ellos.
 3. **Anthropic:** crea una clave en [console.anthropic.com](https://console.anthropic.com).
 4. **Meta / WhatsApp:**
    - En [developers.facebook.com](https://developers.facebook.com) crea una app tipo *Business* y agrega el producto *WhatsApp*.
@@ -59,7 +59,8 @@ Desde su WhatsApp personal (`LUIS_PHONE`) al número del negocio:
    npx wrangler secret put WHATSAPP_APP_SECRET
    npx wrangler secret put WHATSAPP_VERIFY_TOKEN     # una clave que tú inventas
    npx wrangler secret put SHOPIFY_STORE_DOMAIN      # xxxx.myshopify.com
-   npx wrangler secret put SHOPIFY_ADMIN_TOKEN
+   npx wrangler secret put SHOPIFY_CLIENT_ID
+   npx wrangler secret put SHOPIFY_CLIENT_SECRET
    npx wrangler secret put ANTHROPIC_API_KEY
    npx wrangler secret put LUIS_PHONE                # 5939XXXXXXXX
    ```

@@ -11,7 +11,9 @@ export interface Env {
 
   // Shopify Admin API
   SHOPIFY_STORE_DOMAIN: string; // p. ej. ritual-diario.myshopify.com
-  SHOPIFY_ADMIN_TOKEN: string;
+  SHOPIFY_CLIENT_ID?: string; // app del Dev Dashboard (client credentials grant)
+  SHOPIFY_CLIENT_SECRET?: string;
+  SHOPIFY_ADMIN_TOKEN?: string; // solo para apps antiguas creadas en el admin
   SHOPIFY_API_VERSION?: string;
   STORE_URL: string; // p. ej. https://ritualdiarioec.store
 
