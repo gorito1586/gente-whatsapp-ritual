@@ -22,25 +22,33 @@ async function accessToken(env: Env): Promise<string> {
   if (env.SHOPIFY_ADMIN_TOKEN) return env.SHOPIFY_ADMIN_TOKEN;
   const cached = await env.STATE.get("shopify_token");
   if (cached) return cached;
-  const res = await fetch(`https://${env.SHOPIFY_STORE_DOMAIN}/admin/oauth/access_token`, {
+  const res = await fetch(`https://${storeDomain(env)}/admin/oauth/access_token`, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      client_id: env.SHOPIFY_CLIENT_ID ?? "",
-      client_secret: env.SHOPIFY_CLIENT_SECRET ?? "",
+      client_id: (env.SHOPIFY_CLIENT_ID ?? "").trim(),
+      client_secret: (env.SHOPIFY_CLIENT_SECRET ?? "").trim(),
     }),
   });
-  const data: any = await res.json().catch(() => ({}));
-  if (!res.ok || !data.access_token) throw new Error(`Shopify token ${res.status}: ${JSON.stringify(data)}`);
+  const raw = await res.text();
+  let data: any = {};
+  try {
+    data = JSON.parse(raw);
+  } catch {}
+  if (!res.ok || !data.access_token) throw new Error(`Shopify token ${res.status}: ${raw.slice(0, 300)}`);
   const ttl = Math.max(60, (data.expires_in ?? 86399) - 3600);
   await env.STATE.put("shopify_token", data.access_token, { expirationTtl: ttl });
   return data.access_token;
 }
 
+// Acepta el dominio con o sin "https://" o "/" al final.
+const storeDomain = (env: Env) =>
+  env.SHOPIFY_STORE_DOMAIN.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+
 async function admin(env: Env, query: string, variables: Record<string, unknown> = {}) {
   const version = env.SHOPIFY_API_VERSION ?? "2026-07";
-  const res = await fetch(`https://${env.SHOPIFY_STORE_DOMAIN}/admin/api/${version}/graphql.json`, {
+  const res = await fetch(`https://${storeDomain(env)}/admin/api/${version}/graphql.json`, {
     method: "POST",
     headers: { "X-Shopify-Access-Token": await accessToken(env), "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
