@@ -54,7 +54,14 @@ async function admin(env: Env, query: string, variables: Record<string, unknown>
     body: JSON.stringify({ query, variables }),
   });
   const data: any = await res.json().catch(() => ({}));
-  if (!res.ok || data.errors) throw new Error(`Shopify ${res.status}: ${JSON.stringify(data.errors ?? data)}`);
+  if (!res.ok || data.errors) {
+    // Si faltan permisos, se descarta el token guardado para pedir uno nuevo
+    // con los permisos actualizados en el siguiente intento.
+    if (res.status === 401 || JSON.stringify(data.errors ?? "").includes("ACCESS_DENIED")) {
+      await env.STATE.delete("shopify_token");
+    }
+    throw new Error(`Shopify ${res.status}: ${JSON.stringify(data.errors ?? data)}`);
+  }
   return data.data;
 }
 

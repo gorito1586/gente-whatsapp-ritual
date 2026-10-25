@@ -12,6 +12,9 @@ export function memoryKV() {
     async put(key: string, value: string) {
       data.set(key, value);
     },
+    async delete(key: string) {
+      data.delete(key);
+    },
   } as unknown as KVNamespace & { data: Map<string, string> };
 }
 

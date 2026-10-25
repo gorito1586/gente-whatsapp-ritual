@@ -31,4 +31,17 @@ describe("token de Shopify (client credentials)", () => {
     await getCatalog(env);
     expect(calls.filter((c) => c.url.endsWith("/access_token"))).toHaveLength(1);
   });
+
+  it("descarta el token guardado si Shopify niega el acceso", async () => {
+    const env = makeEnv();
+    delete env.SHOPIFY_ADMIN_TOKEN;
+    env.SHOPIFY_CLIENT_ID = "cid";
+    env.SHOPIFY_CLIENT_SECRET = "csecret";
+    await env.STATE.put("shopify_token", "viejo");
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      Response.json({ errors: [{ message: "Access denied for products field.", extensions: { code: "ACCESS_DENIED" } }] }),
+    ));
+    await expect(getCatalog(env)).rejects.toThrow("ACCESS_DENIED");
+    expect(env.STATE.data.has("shopify_token")).toBe(false);
+  });
 });
