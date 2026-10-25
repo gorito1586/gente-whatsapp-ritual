@@ -1,0 +1,26 @@
+name = "agente-whatsapp-ritual"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "STATE"
+id = "REEMPLAZAR_CON_EL_ID_DEL_KV"
+
+[vars]
+STORE_URL = "https://ritualdiarioec.store"
+CLAUDE_MODEL = "claude-opus-5-5"
+CLAUDE_EFFORT = "low"
+PAUSE_HOURS = "12"
+GRAPH_API_VERSION = "v23.0"
+SHOPIFY_API_VERSION = "2026-07"
+
+# Secretos (no van en este archivo). Se cargan con:
+#   npx wrangler secret put WHATSAPP_TOKEN
+#   npx wrangler secret put WHATSAPP_PHONE_NUMBER_ID
+#   npx wrangler secret put WHATSAPP_APP_SECRET
+#   npx wrangler secret put WHATSAPP_VERIFY_TOKEN
+#   npx wrangler secret put SHOPIFY_STORE_DOMAIN
+#   npx wrangler secret put SHOPIFY_ADMIN_TOKEN
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put LUIS_PHONE
