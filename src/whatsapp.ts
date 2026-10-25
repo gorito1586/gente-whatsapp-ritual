@@ -76,16 +76,48 @@ export async function verifySignature(rawBody: string, header: string | null, ap
   return diff === 0;
 }
 
-async function send(env: Env, payload: Record<string, unknown>): Promise<string | undefined> {
+export const D360_BASE = "https://waba-v2.360dialog.io";
+
+export const uses360dialog = (env: Env) => Boolean(env.D360_API_KEY);
+
+// 360dialog expone la misma API de Meta en otra dirección y con otra cabecera.
+function endpoint(env: Env): { url: string; headers: Record<string, string> } {
+  if (uses360dialog(env)) {
+    return { url: `${D360_BASE}/messages`, headers: { "D360-API-KEY": env.D360_API_KEY! } };
+  }
   const version = env.GRAPH_API_VERSION ?? "v23.0";
-  const res = await fetch(
-    `https://graph.facebook.com/${version}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ messaging_product: "whatsapp", ...payload }),
-    },
-  );
+  return {
+    url: `https://graph.facebook.com/${version}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    headers: { Authorization: `Bearer ${env.WHATSAPP_TOKEN}` },
+  };
+}
+
+// Con 360dialog el webhook no viene firmado: se registra con una cabecera
+// Authorization secreta que se compara aquí.
+export function verifyBearer(header: string | null, token: string) {
+  const expected = `Bearer ${token}`;
+  if (!token || !header || header.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ header.charCodeAt(i);
+  return diff === 0;
+}
+
+export async function register360Webhook(env: Env, webhookUrl: string) {
+  const res = await fetch(`${D360_BASE}/v1/configs/webhook`, {
+    method: "POST",
+    headers: { "D360-API-KEY": env.D360_API_KEY!, "Content-Type": "application/json" },
+    body: JSON.stringify({ url: webhookUrl, headers: { Authorization: `Bearer ${env.WHATSAPP_VERIFY_TOKEN}` } }),
+  });
+  return { status: res.status, body: (await res.text()).slice(0, 500) };
+}
+
+async function send(env: Env, payload: Record<string, unknown>): Promise<string | undefined> {
+  const { url, headers } = endpoint(env);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ messaging_product: "whatsapp", ...payload }),
+  });
   const data: any = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`WhatsApp ${res.status}: ${JSON.stringify(data?.error ?? data)}`);
   return data?.messages?.[0]?.id;

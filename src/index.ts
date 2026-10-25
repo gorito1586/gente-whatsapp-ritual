@@ -11,7 +11,17 @@ import {
   setPause,
   wasSentByBot,
 } from "./store";
-import { markRead, notifyLuis, parseWebhook, sendText, verifySignature, type IncomingMessage } from "./whatsapp";
+import {
+  markRead,
+  notifyLuis,
+  parseWebhook,
+  register360Webhook,
+  sendText,
+  uses360dialog,
+  verifyBearer,
+  verifySignature,
+  type IncomingMessage,
+} from "./whatsapp";
 
 const HANDOFF = "Te paso con Luis, que te atiende personalmente en breve 🙌";
 
@@ -19,6 +29,7 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/salud") return health(env);
+    if (url.pathname === "/configurar-webhook") return configureWebhook(env, url);
     if (url.pathname !== "/webhook") return new Response("Ritual Diario · agente de WhatsApp", { status: 200 });
 
     // Verificación del webhook al configurarlo en Meta.
@@ -32,9 +43,10 @@ export default {
     if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
 
     const raw = await request.text();
-    if (!(await verifySignature(raw, request.headers.get("x-hub-signature-256"), env.WHATSAPP_APP_SECRET))) {
-      return new Response("Invalid signature", { status: 401 });
-    }
+    const authorized = uses360dialog(env)
+      ? verifyBearer(request.headers.get("authorization"), env.WHATSAPP_VERIFY_TOKEN)
+      : await verifySignature(raw, request.headers.get("x-hub-signature-256"), env.WHATSAPP_APP_SECRET ?? "");
+    if (!authorized) return new Response("Invalid signature", { status: 401 });
 
     // Meta espera un 200 rápido; el trabajo sigue en segundo plano.
     ctx.waitUntil(handleEvents(env, JSON.parse(raw)));
@@ -44,10 +56,10 @@ export default {
 
 // Revisión rápida de la configuración: qué secretos faltan y si Shopify responde.
 export async function health(env: Env) {
-  const required = [
-    "WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN",
-    "SHOPIFY_STORE_DOMAIN", "ANTHROPIC_API_KEY", "LUIS_PHONE",
-  ] as const;
+  const whatsapp = uses360dialog(env)
+    ? (["D360_API_KEY"] as const)
+    : (["WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_APP_SECRET"] as const);
+  const required = [...whatsapp, "WHATSAPP_VERIFY_TOKEN", "SHOPIFY_STORE_DOMAIN", "ANTHROPIC_API_KEY", "LUIS_PHONE"] as const;
   const faltan: string[] = required.filter((k) => !env[k]);
   if (!env.SHOPIFY_ADMIN_TOKEN && !(env.SHOPIFY_CLIENT_ID && env.SHOPIFY_CLIENT_SECRET)) {
     faltan.push("SHOPIFY_CLIENT_ID", "SHOPIFY_CLIENT_SECRET");
@@ -60,6 +72,17 @@ export async function health(env: Env) {
   }
   const permisos_shopify = (await env.STATE.get("shopify_scopes")) ?? "(sin token todavía)";
   return Response.json({ faltan, shopify, permisos_shopify });
+}
+
+// Registra en 360dialog la dirección del webhook. Se abre una vez desde el
+// navegador: /configurar-webhook?clave=<WHATSAPP_VERIFY_TOKEN>
+export async function configureWebhook(env: Env, url: URL) {
+  if (!uses360dialog(env)) return new Response("Falta D360_API_KEY", { status: 400 });
+  if (!env.WHATSAPP_VERIFY_TOKEN || url.searchParams.get("clave") !== env.WHATSAPP_VERIFY_TOKEN) {
+    return new Response("Clave incorrecta", { status: 403 });
+  }
+  const result = await register360Webhook(env, `${url.origin}/webhook`);
+  return Response.json({ webhook: `${url.origin}/webhook`, respuesta_360dialog: result });
 }
 
 export async function handleEvents(env: Env, body: unknown) {

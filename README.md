@@ -47,28 +47,24 @@ Desde su WhatsApp personal (`LUIS_PHONE`) al número del negocio:
    ```
 2. **Shopify:** desde 2026 las apps nuevas se crean en el [Dev Dashboard](https://dev.shopify.com/dashboard) (ya no en *Desarrollar apps* del admin). Crea una app, en su versión marca los permisos `read_products`, `read_inventory` y `write_orders`, publícala e instálala en la tienda. Copia el *Client ID* y el *Client secret*; el agente pide solo el token de 24 h con ellos.
 3. **Anthropic:** crea una clave en [console.anthropic.com](https://console.anthropic.com).
-4. **Meta / WhatsApp:**
-   - En [developers.facebook.com](https://developers.facebook.com) crea una app tipo *Business* y agrega el producto *WhatsApp*.
-   - Conecta el número de Ritual Diario en modo **coexistencia** (escaneando el código QR desde la app WhatsApp Business).
-   - Crea un usuario de sistema con token permanente y permisos `whatsapp_business_messaging` y `whatsapp_business_management`.
-   - Copia el *Phone number ID* y el *App secret*.
-5. **Secretos:**
-   ```bash
-   npx wrangler secret put WHATSAPP_TOKEN
-   npx wrangler secret put WHATSAPP_PHONE_NUMBER_ID
-   npx wrangler secret put WHATSAPP_APP_SECRET
-   npx wrangler secret put WHATSAPP_VERIFY_TOKEN     # una clave que tú inventas
-   npx wrangler secret put SHOPIFY_STORE_DOMAIN      # xxxx.myshopify.com
-   npx wrangler secret put SHOPIFY_CLIENT_ID
-   npx wrangler secret put SHOPIFY_CLIENT_SECRET
-   npx wrangler secret put ANTHROPIC_API_KEY
-   npx wrangler secret put LUIS_PHONE                # 5939XXXXXXXX
-   ```
-6. **Publicar:** `npm run deploy`. En Meta, configura el webhook con la URL `https://gente-whatsapp-ritual.slipluis.workers.dev/webhook`, el mismo `WHATSAPP_VERIFY_TOKEN`, y suscríbete a los campos `messages` y `smb_message_echoes`.
+4. **WhatsApp con 360dialog (coexistencia):** Meta solo permite la coexistencia a través de proveedores oficiales, así que se usa [360dialog](https://360dialog.com).
+   - Crea la cuenta en 360dialog y conecta el número de Ritual Diario eligiendo la opción de **coexistencia** (se escanea un QR desde la app WhatsApp Business).
+   - En el panel de 360dialog genera la **API key** del número.
+5. **Secretos** (en Cloudflare → *Settings → Variables and Secrets*, tipo *Secret*):
+   - `D360_API_KEY`: la API key de 360dialog
+   - `WHATSAPP_VERIFY_TOKEN`: una clave larga que tú inventas (protege el webhook)
+   - `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET`
+   - `ANTHROPIC_API_KEY`
+   - `LUIS_PHONE`: tu número personal, p. ej. `593991234567`
+6. **Conectar el webhook:** abre una vez en el navegador
+   `https://gente-whatsapp-ritual.slipluis.workers.dev/configurar-webhook?clave=TU_WHATSAPP_VERIFY_TOKEN`.
+   Registra en 360dialog la dirección `/webhook` con una cabecera secreta. La respuesta debe mostrar `"status": 200`.
+
+> También funciona con la Cloud API directa de Meta (sin coexistencia): en vez de `D360_API_KEY` se cargan `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` y `WHATSAPP_APP_SECRET`, y el webhook se configura en Meta con la URL `/webhook` y el mismo `WHATSAPP_VERIFY_TOKEN`.
 
 ### Avisos a Luis fuera de la ventana de 24 horas
 
-WhatsApp solo permite mensajes libres a un número que escribió al negocio en las últimas 24 horas. Para que los avisos lleguen siempre, crea en Meta una plantilla de categoría *Utilidad* (por ejemplo `aviso_luis`, idioma español) con el cuerpo `{{1}}`, y cuando esté aprobada:
+WhatsApp solo permite mensajes libres a un número que escribió al negocio en las últimas 24 horas. Para que los avisos lleguen siempre, crea (en el panel de 360dialog) una plantilla de categoría *Utilidad* (por ejemplo `aviso_luis`, idioma español) con el cuerpo `{{1}}`, y cuando esté aprobada:
 
 ```bash
 npx wrangler secret put ALERT_TEMPLATE        # aviso_luis

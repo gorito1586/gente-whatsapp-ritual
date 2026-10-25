@@ -15,13 +15,7 @@ PAUSE_HOURS = "12"
 GRAPH_API_VERSION = "v23.0"
 SHOPIFY_API_VERSION = "2026-07"
 
-# Secretos (no van en este archivo). Se cargan con:
-#   npx wrangler secret put WHATSAPP_TOKEN
-#   npx wrangler secret put WHATSAPP_PHONE_NUMBER_ID
-#   npx wrangler secret put WHATSAPP_APP_SECRET
-#   npx wrangler secret put WHATSAPP_VERIFY_TOKEN
-#   npx wrangler secret put SHOPIFY_STORE_DOMAIN
-#   npx wrangler secret put SHOPIFY_CLIENT_ID
-#   npx wrangler secret put SHOPIFY_CLIENT_SECRET
-#   npx wrangler secret put ANTHROPIC_API_KEY
-#   npx wrangler secret put LUIS_PHONE
+# Secretos (no van en este archivo). Se cargan en Cloudflare → Settings →
+# Variables and Secrets: D360_API_KEY, WHATSAPP_VERIFY_TOKEN,
+# SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET,
+# ANTHROPIC_API_KEY, LUIS_PHONE.
