@@ -76,3 +76,14 @@ describe("handleEvents", () => {
     expect(runAgent).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("/salud", () => {
+  it("lista los secretos que faltan y el estado de Shopify", async () => {
+    const { health } = await import("../src/index");
+    const env = makeEnv();
+    delete (env as any).ANTHROPIC_API_KEY;
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ data: { products: { nodes: [] } } })));
+    const body = await (await health(env)).json();
+    expect(body).toEqual({ faltan: ["ANTHROPIC_API_KEY"], shopify: "ok, 0 productos activos" });
+  });
+});

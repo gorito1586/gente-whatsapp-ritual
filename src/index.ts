@@ -1,5 +1,6 @@
 import { runAgent } from "./agent";
 import type { Env } from "./env";
+import { getCatalog } from "./shopify";
 import {
   ESCALATION_PAUSE,
   isPaused,
@@ -17,6 +18,7 @@ const HANDOFF = "Te paso con Luis, que te atiende personalmente en breve 🙌";
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === "/salud") return health(env);
     if (url.pathname !== "/webhook") return new Response("Ritual Diario · agente de WhatsApp", { status: 200 });
 
     // Verificación del webhook al configurarlo en Meta.
@@ -39,6 +41,25 @@ export default {
     return new Response("OK");
   },
 };
+
+// Revisión rápida de la configuración: qué secretos faltan y si Shopify responde.
+export async function health(env: Env) {
+  const required = [
+    "WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN",
+    "SHOPIFY_STORE_DOMAIN", "ANTHROPIC_API_KEY", "LUIS_PHONE",
+  ] as const;
+  const faltan: string[] = required.filter((k) => !env[k]);
+  if (!env.SHOPIFY_ADMIN_TOKEN && !(env.SHOPIFY_CLIENT_ID && env.SHOPIFY_CLIENT_SECRET)) {
+    faltan.push("SHOPIFY_CLIENT_ID", "SHOPIFY_CLIENT_SECRET");
+  }
+  let shopify: string;
+  try {
+    shopify = `ok, ${(await getCatalog(env)).length} productos activos`;
+  } catch (err) {
+    shopify = `error: ${String(err).slice(0, 300)}`;
+  }
+  return Response.json({ faltan, shopify });
+}
 
 export async function handleEvents(env: Env, body: unknown) {
   const { messages, echoes } = parseWebhook(body);

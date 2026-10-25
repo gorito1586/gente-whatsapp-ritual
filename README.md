@@ -80,6 +80,10 @@ Mientras tanto, basta con que Luis escriba cualquier cosa al número del negocio
 
 Por defecto usa `claude-opus-5-5` con esfuerzo `low`, que es rápido y suficiente para atención al cliente. Para bajar costos se puede probar `claude-haiku-5-5` cambiando `CLAUDE_MODEL` en `wrangler.toml`.
 
+## Revisar la configuración
+
+Abre `https://agente-whatsapp-ritual.<tu-subdominio>.workers.dev/salud`: muestra qué secretos faltan y si Shopify responde.
+
 ## Pruebas
 
 ```bash
