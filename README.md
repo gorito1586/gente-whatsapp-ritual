@@ -47,7 +47,13 @@ Desde su WhatsApp personal (`LUIS_PHONE`) al número del negocio:
    ```
 2. **Shopify:** desde 2026 las apps nuevas se crean en el [Dev Dashboard](https://dev.shopify.com/dashboard) (ya no en *Desarrollar apps* del admin). Crea una app, en su versión marca los permisos `read_products`, `read_inventory` y `write_orders`, publícala e instálala en la tienda. Copia el *Client ID* y el *Client secret*; el agente pide solo el token de 24 h con ellos.
 3. **Anthropic:** crea una clave en [console.anthropic.com](https://console.anthropic.com).
-4. **WhatsApp con 360dialog (coexistencia):** Meta solo permite la coexistencia a través de proveedores oficiales, así que se usa [360dialog](https://360dialog.com).
+4. **WhatsApp con Kapso (coexistencia, plan gratis de 2.000 mensajes al mes):**
+   - Crea la cuenta en [kapso.com](https://kapso.com) y conecta el número con la opción de coexistencia (QR desde la app WhatsApp Business).
+   - Crea una API key del proyecto → secreto `KAPSO_API_KEY`.
+   - Copia el *Phone number ID* del número → secreto `WHATSAPP_PHONE_NUMBER_ID`.
+   - En el número, *Edit → Webhook destination URL*: `https://gente-whatsapp-ritual.slipluis.workers.dev/webhook`, tipo **Meta** (formato nativo de Meta). Copia su clave secreta → secreto `KAPSO_WEBHOOK_SECRET`.
+
+   **Alternativa** con **WhatsApp con 360dialog (coexistencia):** Meta solo permite la coexistencia a través de proveedores oficiales, así que se usa [360dialog](https://360dialog.com).
    - Crea la cuenta en 360dialog y conecta el número de Ritual Diario eligiendo la opción de **coexistencia** (se escanea un QR desde la app WhatsApp Business).
    - En el panel de 360dialog genera la **API key** del número.
 5. **Secretos** (en Cloudflare → *Settings → Variables and Secrets*, tipo *Secret*):

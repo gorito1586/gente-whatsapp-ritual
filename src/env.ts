@@ -2,6 +2,10 @@ export interface Env {
   // Almacén de conversaciones (Cloudflare KV)
   STATE: KVNamespace;
 
+  // WhatsApp por Kapso (coexistencia, plan gratis): clave de API, secreto del
+  // webhook tipo "meta" y el phone number id (el mismo de Meta)
+  KAPSO_API_KEY?: string;
+  KAPSO_WEBHOOK_SECRET?: string;
   // WhatsApp por 360dialog (coexistencia): basta con la clave de la API
   D360_API_KEY?: string;
   // WhatsApp Cloud API directo de Meta (solo si no se usa 360dialog)
@@ -10,7 +14,7 @@ export interface Env {
   WHATSAPP_APP_SECRET?: string;
   GRAPH_API_VERSION?: string;
   // Clave que protege el webhook (y la verificación de Meta)
-  WHATSAPP_VERIFY_TOKEN: string;
+  WHATSAPP_VERIFY_TOKEN?: string;
 
   // Shopify Admin API
   SHOPIFY_STORE_DOMAIN: string; // p. ej. ritual-diario.myshopify.com

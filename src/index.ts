@@ -18,6 +18,7 @@ import {
   register360Webhook,
   sendText,
   uses360dialog,
+  usesKapso,
   verifyBearer,
   verifySignature,
   type IncomingMessage,
@@ -43,9 +44,11 @@ export default {
     if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
 
     const raw = await request.text();
-    const authorized = uses360dialog(env)
-      ? verifyBearer(request.headers.get("authorization"), env.WHATSAPP_VERIFY_TOKEN)
-      : await verifySignature(raw, request.headers.get("x-hub-signature-256"), env.WHATSAPP_APP_SECRET ?? "");
+    const authorized = usesKapso(env)
+      ? await verifySignature(raw, request.headers.get("x-webhook-signature"), env.KAPSO_WEBHOOK_SECRET ?? "", "")
+      : uses360dialog(env)
+        ? verifyBearer(request.headers.get("authorization"), env.WHATSAPP_VERIFY_TOKEN ?? "")
+        : await verifySignature(raw, request.headers.get("x-hub-signature-256"), env.WHATSAPP_APP_SECRET ?? "");
     if (!authorized) return new Response("Invalid signature", { status: 401 });
 
     // Meta espera un 200 rápido; el trabajo sigue en segundo plano.
@@ -56,10 +59,12 @@ export default {
 
 // Revisión rápida de la configuración: qué secretos faltan y si Shopify responde.
 export async function health(env: Env) {
-  const whatsapp = uses360dialog(env)
-    ? (["D360_API_KEY"] as const)
-    : (["WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_APP_SECRET"] as const);
-  const required = [...whatsapp, "WHATSAPP_VERIFY_TOKEN", "SHOPIFY_STORE_DOMAIN", "ANTHROPIC_API_KEY", "LUIS_PHONE"] as const;
+  const whatsapp = usesKapso(env)
+    ? (["KAPSO_API_KEY", "KAPSO_WEBHOOK_SECRET", "WHATSAPP_PHONE_NUMBER_ID"] as const)
+    : uses360dialog(env)
+      ? (["D360_API_KEY", "WHATSAPP_VERIFY_TOKEN"] as const)
+      : (["WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN"] as const);
+  const required = [...whatsapp, "SHOPIFY_STORE_DOMAIN", "ANTHROPIC_API_KEY", "LUIS_PHONE"] as const;
   const faltan: string[] = required.filter((k) => !env[k]);
   if (!env.SHOPIFY_ADMIN_TOKEN && !(env.SHOPIFY_CLIENT_ID && env.SHOPIFY_CLIENT_SECRET)) {
     faltan.push("SHOPIFY_CLIENT_ID", "SHOPIFY_CLIENT_SECRET");

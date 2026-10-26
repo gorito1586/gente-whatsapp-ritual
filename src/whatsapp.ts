@@ -58,8 +58,9 @@ export function parseWebhook(body: any): WebhookEvents {
   return out;
 }
 
-export async function verifySignature(rawBody: string, header: string | null, appSecret: string) {
-  if (!header?.startsWith("sha256=")) return false;
+// Meta firma con "sha256=<hex>"; Kapso (webhook tipo "meta") con el hex sin prefijo.
+export async function verifySignature(rawBody: string, header: string | null, appSecret: string, prefix = "sha256=") {
+  if (!appSecret || !header?.startsWith(prefix)) return false;
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(appSecret),
@@ -69,7 +70,7 @@ export async function verifySignature(rawBody: string, header: string | null, ap
   );
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
   const expected = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  const given = header.slice("sha256=".length);
+  const given = header.slice(prefix.length);
   if (given.length !== expected.length) return false;
   let diff = 0;
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ given.charCodeAt(i);
@@ -78,10 +79,19 @@ export async function verifySignature(rawBody: string, header: string | null, ap
 
 export const D360_BASE = "https://waba-v2.360dialog.io";
 
-export const uses360dialog = (env: Env) => Boolean(env.D360_API_KEY);
+export const KAPSO_BASE = "https://api.kapso.ai/meta/whatsapp/v24.0";
 
-// 360dialog expone la misma API de Meta en otra dirección y con otra cabecera.
+export const usesKapso = (env: Env) => Boolean(env.KAPSO_API_KEY);
+export const uses360dialog = (env: Env) => !usesKapso(env) && Boolean(env.D360_API_KEY);
+
+// Kapso y 360dialog exponen la misma API de Meta en otra dirección y con otra cabecera.
 function endpoint(env: Env): { url: string; headers: Record<string, string> } {
+  if (usesKapso(env)) {
+    return {
+      url: `${KAPSO_BASE}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      headers: { "X-API-Key": env.KAPSO_API_KEY! },
+    };
+  }
   if (uses360dialog(env)) {
     return { url: `${D360_BASE}/messages`, headers: { "D360-API-KEY": env.D360_API_KEY! } };
   }
