@@ -80,8 +80,9 @@ export async function health(env: Env) {
   }
   const permisos_shopify = (await env.STATE.get("shopify_scopes")) ?? "(sin token todavía)";
   const ultimo_webhook = (await env.STATE.get("diag:ultimo_webhook")) ?? "(ninguno todavía)";
+  const ultimo_paso = (await env.STATE.get("diag:ultimo_paso")) ?? "(ninguno todavía)";
   const ultimo_error = (await env.STATE.get("diag:ultimo_error")) ?? "(ninguno)";
-  return Response.json({ faltan, shopify, permisos_shopify, ultimo_webhook, ultimo_error });
+  return Response.json({ faltan, shopify, permisos_shopify, ultimo_webhook, ultimo_paso, ultimo_error });
 }
 
 // Registra en 360dialog la dirección del webhook. Se abre una vez desde el
@@ -114,7 +115,10 @@ export async function handleEvents(env: Env, body: unknown) {
   for (const msg of messages) {
     if (await seen(env, msg.id)) continue;
     try {
-      if (msg.from === env.LUIS_PHONE) await handleLuisCommand(env, msg);
+      if (msg.from === env.LUIS_PHONE) {
+        await logEvent(env, "ultimo_paso", "mensaje de Luis (comando)");
+        await handleLuisCommand(env, msg);
+      }
       else await handleCustomer(env, msg);
     } catch (err) {
       console.error("Error procesando mensaje", msg.id, err);
@@ -140,14 +144,20 @@ export async function handleLuisCommand(env: Env, msg: IncomingMessage) {
 
 export async function handleCustomer(env: Env, msg: IncomingMessage) {
   const conv = await loadConversation(env, msg.from);
-  if (isPaused(conv)) return; // Luis está atendiendo este chat
+  if (isPaused(conv)) {
+    await logEvent(env, "ultimo_paso", `chat de +${msg.from} en pausa, no responde`);
+    return; // Luis está atendiendo este chat
+  }
+  await logEvent(env, "ultimo_paso", `+${msg.from}: consultando a Claude`);
   await markRead(env, msg.id);
 
   const { reply, effects } = await runAgent(env, conv, msg.from, msg.name, msg.text);
+  await logEvent(env, "ultimo_paso", `+${msg.from}: Claude respondió, enviando`);
   if (effects.escalation) conv.pausedUntil = Date.now() + ESCALATION_PAUSE;
   await saveConversation(env, msg.from, conv);
 
   await rememberSent(env, await sendText(env, msg.from, reply || HANDOFF));
+  await logEvent(env, "ultimo_paso", `+${msg.from}: respuesta enviada`);
 
   const who = `${msg.name ?? "Cliente"} (+${msg.from})`;
   if (effects.escalation) {
