@@ -49,7 +49,10 @@ export default {
       : uses360dialog(env)
         ? verifyBearer(request.headers.get("authorization"), env.WHATSAPP_VERIFY_TOKEN ?? "")
         : await verifySignature(raw, request.headers.get("x-hub-signature-256"), env.WHATSAPP_APP_SECRET ?? "");
-    if (!authorized) return new Response("Invalid signature", { status: 401 });
+    if (!authorized) {
+      await logEvent(env, "ultimo_webhook", "rechazado: firma inválida (revisa KAPSO_WEBHOOK_SECRET)");
+      return new Response("Invalid signature", { status: 401 });
+    }
 
     // Meta espera un 200 rápido; el trabajo sigue en segundo plano.
     ctx.waitUntil(handleEvents(env, JSON.parse(raw)));
@@ -76,7 +79,9 @@ export async function health(env: Env) {
     shopify = `error: ${String(err).slice(0, 300)}`;
   }
   const permisos_shopify = (await env.STATE.get("shopify_scopes")) ?? "(sin token todavía)";
-  return Response.json({ faltan, shopify, permisos_shopify });
+  const ultimo_webhook = (await env.STATE.get("diag:ultimo_webhook")) ?? "(ninguno todavía)";
+  const ultimo_error = (await env.STATE.get("diag:ultimo_error")) ?? "(ninguno)";
+  return Response.json({ faltan, shopify, permisos_shopify, ultimo_webhook, ultimo_error });
 }
 
 // Registra en 360dialog la dirección del webhook. Se abre una vez desde el
@@ -90,8 +95,14 @@ export async function configureWebhook(env: Env, url: URL) {
   return Response.json({ webhook: `${url.origin}/webhook`, respuesta_360dialog: result });
 }
 
+// Deja rastro en KV para que /salud muestre qué pasó con el último webhook.
+export async function logEvent(env: Env, key: string, detail: string) {
+  await env.STATE.put(`diag:${key}`, `${new Date().toISOString()} · ${detail}`, { expirationTtl: 7 * 24 * 60 * 60 });
+}
+
 export async function handleEvents(env: Env, body: unknown) {
   const { messages, echoes } = parseWebhook(body);
+  await logEvent(env, "ultimo_webhook", `ok: ${messages.length} mensajes, ${echoes.length} ecos`);
 
   // Luis escribió a un cliente desde la app: el bot se calla en ese chat.
   for (const echo of echoes) {
@@ -107,6 +118,7 @@ export async function handleEvents(env: Env, body: unknown) {
       else await handleCustomer(env, msg);
     } catch (err) {
       console.error("Error procesando mensaje", msg.id, err);
+      await logEvent(env, "ultimo_error", String(err).slice(0, 500));
     }
   }
 }
