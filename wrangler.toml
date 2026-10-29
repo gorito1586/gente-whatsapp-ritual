@@ -2,6 +2,8 @@ name = "gente-whatsapp-ritual"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
+# Conserva las variables cargadas en el panel de Cloudflare al publicar desde GitHub.
+keep_vars = true
 
 [[kv_namespaces]]
 binding = "STATE"
