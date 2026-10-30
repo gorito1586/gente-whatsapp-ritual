@@ -33,8 +33,11 @@ export function isPaused(conv: Conversation) {
   return (conv.pausedUntil ?? 0) > Date.now();
 }
 
-export async function setPause(env: Env, phone: string, untilMs: number | undefined) {
+// Con `slackMs`, no reescribe si la pausa actual ya llega casi hasta `untilMs`
+// (Luis puede mandar muchos mensajes seguidos desde la app).
+export async function setPause(env: Env, phone: string, untilMs: number | undefined, slackMs = 0) {
   const conv = await loadConversation(env, phone);
+  if (slackMs && untilMs && (conv.pausedUntil ?? 0) >= untilMs - slackMs) return;
   conv.pausedUntil = untilMs;
   await saveConversation(env, phone, conv);
 }

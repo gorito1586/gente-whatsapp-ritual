@@ -103,22 +103,21 @@ export async function logEvent(env: Env, key: string, detail: string) {
 
 export async function handleEvents(env: Env, body: unknown) {
   const { messages, echoes } = parseWebhook(body);
-  await logEvent(env, "ultimo_webhook", `ok: ${messages.length} mensajes, ${echoes.length} ecos`);
+  // Los avisos de estado (entregado, leído) llegan por cada mensaje de la app:
+  // no se registran para no gastar escrituras de KV.
+  if (messages.length) await logEvent(env, "ultimo_webhook", `ok: ${messages.length} mensajes, ${echoes.length} ecos`);
 
   // Luis escribió a un cliente desde la app: el bot se calla en ese chat.
   for (const echo of echoes) {
     if (await wasSentByBot(env, echo.id)) continue;
     const hours = Number(env.PAUSE_HOURS ?? "12");
-    await setPause(env, echo.to, Date.now() + hours * 60 * 60 * 1000);
+    await setPause(env, echo.to, Date.now() + hours * 60 * 60 * 1000, 60 * 60 * 1000);
   }
 
   for (const msg of messages) {
     if (await seen(env, msg.id)) continue;
     try {
-      if (msg.from === env.LUIS_PHONE) {
-        await logEvent(env, "ultimo_paso", "mensaje de Luis (comando)");
-        await handleLuisCommand(env, msg);
-      }
+      if (msg.from === env.LUIS_PHONE) await handleLuisCommand(env, msg);
       else await handleCustomer(env, msg);
     } catch (err) {
       console.error("Error procesando mensaje", msg.id, err);
@@ -148,11 +147,9 @@ export async function handleCustomer(env: Env, msg: IncomingMessage) {
     await logEvent(env, "ultimo_paso", `chat de +${msg.from} en pausa, no responde`);
     return; // Luis está atendiendo este chat
   }
-  await logEvent(env, "ultimo_paso", `+${msg.from}: consultando a Claude`);
   await markRead(env, msg.id);
 
   const { reply, effects } = await runAgent(env, conv, msg.from, msg.name, msg.text);
-  await logEvent(env, "ultimo_paso", `+${msg.from}: Claude respondió, enviando`);
   if (effects.escalation) conv.pausedUntil = Date.now() + ESCALATION_PAUSE;
   await saveConversation(env, msg.from, conv);
 
