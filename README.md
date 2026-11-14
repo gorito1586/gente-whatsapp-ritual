@@ -80,7 +80,7 @@ Mientras tanto, basta con que Luis escriba cualquier cosa al número del negocio
 
 ## Modelo de Claude
 
-Por defecto usa `claude-opus-5-5` con esfuerzo `low`, que es rápido y suficiente para atención al cliente. Para bajar costos se puede probar `claude-haiku-5-5` cambiando `CLAUDE_MODEL` en `wrangler.toml`.
+Por defecto usa `claude-haiku-5-5` con esfuerzo `low`, que es barato y suficiente para atención al cliente. Para respuestas de más calidad se puede usar `claude-opus-5-5` cambiando `CLAUDE_MODEL` en `wrangler.toml` (cuesta unas 40 veces más).
 
 ## Revisar la configuración
 

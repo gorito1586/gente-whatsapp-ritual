@@ -60,7 +60,17 @@ describe("runAgent", () => {
     expect(toolResult.content).toContain("23.99");
     expect(toolResult.content).toContain("https://ritualdiarioec.store/products/neocell-colageno");
     expect(claude.requests[0].messages[0].content).toContain("[Nombre en WhatsApp: María]");
-    expect(claude.requests[0].model).toBe("claude-opus-5-5");
+    expect(claude.requests[0].model).toBe("claude-haiku-5-5");
+    expect(claude.requests[0].fallbacks).toBeUndefined();
+  });
+
+  it("pide respaldo del servidor cuando el modelo no es Haiku", async () => {
+    const env = { ...makeEnv(), CLAUDE_MODEL: "claude-opus-5-5" };
+    mockShopify();
+    const claude = fakeClaude([text("Hola 👋")]);
+    await runAgent(env, { messages: [], updatedAt: Date.now() }, "593911111111", undefined, "hola", claude);
+    expect(claude.requests[0].fallbacks).toBe("default");
+    expect(claude.requests[0].betas).toEqual(["server-side-fallback-2026-07-01"]);
   });
 
   it("no crea el pedido si el cliente no dijo SÍ", async () => {

@@ -145,13 +145,18 @@ export async function runAgent(
   const prefix = conv.messages.length === 0 && customerName ? `[Nombre en WhatsApp: ${customerName}]\n` : "";
   conv.messages.push({ role: "user", content: prefix + text });
 
+  const model = env.CLAUDE_MODEL ?? "claude-haiku-5-5";
+  // Haiku no tiene respaldo del lado del servidor ante una negativa; los demás sí.
+  const fallback = model.startsWith("claude-haiku")
+    ? {}
+    : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const };
+
   for (let step = 0; step < MAX_STEPS; step++) {
     const response = await client.beta.messages.create({
-      model: env.CLAUDE_MODEL ?? "claude-opus-5-5",
+      model,
       max_tokens: 16000,
       output_config: { effort: env.CLAUDE_EFFORT ?? "low" },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      ...fallback,
       cache_control: { type: "ephemeral" },
       system: SYSTEM_PROMPT,
       tools: TOOLS,

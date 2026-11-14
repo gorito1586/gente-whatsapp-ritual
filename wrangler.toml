@@ -11,7 +11,7 @@ id = "f9e8c7cf01e243778df8bc9b949f14ec"
 
 [vars]
 STORE_URL = "https://ritualdiarioec.store"
-CLAUDE_MODEL = "claude-opus-5-5"
+CLAUDE_MODEL = "claude-haiku-5-5"
 CLAUDE_EFFORT = "low"
 PAUSE_HOURS = "12"
 GRAPH_API_VERSION = "v23.0"
